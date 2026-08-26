@@ -813,8 +813,22 @@ def render_block(doc, block):
     elif btype in ('cc', 'print', 'issue'):
         set_spacing(p, 24)
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        add_text_runs(p, text, font=FONT_BODY, size=14)
+        # 版记 12pt，与预览端 CSS（#preview .gw-cc/.gw-print/.gw-issue）严格一致。
+        # 关闭中西文自动间距（autoSpaceDE/DN）与字符网格对齐（snapToGrid）：
+        # Word 默认在中英/中文与数字交界处自动加约 1/8 字宽间隙，多个交界累计
+        # 接近一个汉字宽，导致同一内容 docx 比预览早折行一个字。
+        add_text_runs(p, text, font=FONT_BODY, size=12)
         pPr = p._p.get_or_add_pPr()
+        for _tag in ('w:autoSpaceDE', 'w:autoSpaceDN'):
+            _el = OxmlElement(_tag)
+            _el.set(qn('w:val'), '0')
+            pPr.insert_element_before(_el, 'w:bidi', 'w:adjustRightInd',
+                                      'w:snapToGrid', 'w:spacing', 'w:ind',
+                                      'w:contextualSpacing', 'w:jc')
+        _el = OxmlElement('w:snapToGrid')
+        _el.set(qn('w:val'), '0')
+        pPr.insert_element_before(_el, 'w:spacing', 'w:ind',
+                                  'w:contextualSpacing', 'w:jc')
         pBdr = OxmlElement('w:pBdr')
         top = OxmlElement('w:top')
         top.set(qn('w:val'), 'single')
