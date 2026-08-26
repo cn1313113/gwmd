@@ -1,0 +1,609 @@
+/* ============ GWMD 公文编辑器 ============ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #f0f2f5;
+  --panel: #ffffff;
+  --border: #d9dde3;
+  --text: #333;
+  --muted: #8a919c;
+  --primary: #1a5fb4;
+  --primary-dark: #144a8f;
+  --accent: #c62f2f;
+}
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------- 工具栏 ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 52px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  z-index: 10;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.logo {
+  width: 30px; height: 30px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: "FZXiaoBiaoSong", "STSong", serif;
+  font-size: 18px; font-weight: 700;
+}
+.title { font-size: 16px; font-weight: 600; }
+.sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.actions { display: flex; gap: 8px; }
+.actions button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  transition: all .15s;
+}
+.actions button:hover { border-color: var(--primary); color: var(--primary); }
+.actions button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.actions button.primary:hover { background: var(--primary-dark); }
+.actions button.primary-outline {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.actions button.primary-outline:hover { background: #eaf1fb; }
+
+/* ---------- 工作区 ---------- */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.editor-pane, .preview-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.editor-pane {
+  flex: 1 1 50%;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+.preview-pane {
+  flex: 1 1 50%;
+  background: #e6e9ee;
+}
+.pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.pane-head small { color: var(--muted); }
+.pane-meta { font-size: 12px; }
+
+/* 编辑区字号调整（居中于面板标题行） */
+.font-controls {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+}
+.font-controls button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text, #333);
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.font-controls button:hover:not(:disabled) { background: #f0f2f5; }
+.font-controls button:disabled { opacity: 0.35; cursor: default; }
+
+#editor {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 16px;
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1e2430;
+  background: #fdfdfd;
+  tab-size: 2;
+}
+#editor::placeholder { color: #b8bfc9; }
+
+.preview-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 16px;
+  display: flex;
+  justify-content: center;
+}
+#preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  font-size: 16pt;
+  line-height: 29pt;
+  letter-spacing: -0.25pt;
+  color: #000;
+}
+#preview .page {
+  width: 210mm;
+  height: 297mm;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
+  padding: 37mm 26mm 35mm 28mm;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+#preview .gw-content {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ---------- 公文内容样式 ---------- */
+#preview .gw-title {
+  font-family: "Times New Roman", "FZXiaoBiaoSong", "方正小标宋简体", "STSong", "SimSun", serif;
+  font-size: 22pt;
+  font-weight: 700;
+  text-align: center;
+  line-height: 33pt;
+  margin-bottom: 8pt;
+}
+#preview .gw-subtitle {
+  font-family: "Times New Roman", "KaiTi", "楷体", "STKaiti", serif;
+  font-size: 16pt;
+  text-align: center;
+  line-height: 33pt;
+}
+#preview .gw-masthead {
+  font-family: "Times New Roman", "FZXiaoBiaoSong", "STSong", "SimSun", serif;
+  font-size: 22pt;
+  font-weight: 700;
+  text-align: center;
+  color: #c62f2f;
+  line-height: 33pt;
+}
+#preview .gw-docno {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  text-align: center;
+  line-height: 29pt;
+}
+#preview .gw-secret, #preview .gw-urgent {
+  font-family: "Times New Roman", "SimHei", "黑体", sans-serif;
+  font-size: 16pt;
+  line-height: 29pt;
+  text-indent: 0 !important;
+}
+#preview .gw-serial {
+  font-family: "SimHei", "黑体", sans-serif;
+  font-size: 16pt;
+  line-height: 29pt;
+  text-indent: 0 !important;
+}
+#preview .gw-signer { text-align: right; font-size: 16pt; font-family: "FangSong", "仿宋", serif; }
+#preview .gw-redline {
+  border-bottom: 2pt solid #c62f2f;
+  margin: 0;
+  height: 0;
+}
+#preview .gw-h1 {
+  font-family: "Times New Roman", "SimHei", "黑体", sans-serif;
+  font-size: 16pt;
+  font-weight: 700;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-h2 {
+  font-family: "Times New Roman", "KaiTi", "楷体", "STKaiti", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-h3 {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  font-weight: 700;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-h4 {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-inline-title {
+  font-size: 16pt;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-h1-inline {
+  font-family: "Times New Roman", "SimHei", "黑体", sans-serif;
+  font-size: 16pt;
+  font-weight: 700;
+}
+#preview .gw-h2-inline {
+  font-family: "Times New Roman", "KaiTi", "楷体", "STKaiti", serif;
+  font-size: 16pt;
+}
+#preview .gw-h3-inline {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  font-weight: 700;
+}
+#preview .gw-h4-inline {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+}
+#preview .gw-inline-title-body {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+}
+#preview .gw-body {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-to {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-sign, #preview .gw-date {
+  font-family: "Times New Roman", "FangSong", "仿宋", "STFangsong", serif;
+  font-size: 16pt;
+  text-align: right;
+  line-height: 29pt;
+}
+#preview .gw-attach {
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  line-height: 29pt;
+}
+#preview .gw-attach-sub {
+  text-indent: 5em;
+}
+#preview .gw-note {
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  line-height: 29pt;
+}
+#preview .gw-stamp {
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 16pt;
+  text-align: right;
+  line-height: 29pt;
+  color: #999;
+}
+#preview .gw-list {
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: 29pt;
+}
+#preview .gw-quote {
+  font-family: "Times New Roman", "KaiTi", "楷体", serif;
+  font-size: 16pt;
+  text-indent: 2em;
+  border-left: 2pt solid #999;
+  padding-left: 8pt;
+  line-height: 29pt;
+}
+#preview .gw-cc, #preview .gw-print, #preview .gw-issue {
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 12pt;
+  line-height: 24pt;
+  border-top: 1pt solid #000;
+  padding-top: 2pt;
+  white-space: pre-wrap; /* 与 docx 一致：保留连续空格（印发行对位用） */
+}
+#preview .gw-table-wrap { text-align: center; margin: 0 0 29pt 0; }
+#preview table.gw-table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 12pt;
+}
+#preview .gw-table td, #preview .gw-table th {
+  border: 0.5pt solid #000;
+  padding: 0 8pt;
+  line-height: 20pt;
+  text-align: center;
+}
+#preview .gw-table th { font-weight: 700; }
+#preview .gw-footnote-ref {
+  font-size: 12pt;
+  vertical-align: super;
+  color: #000;
+}
+#preview .gw-blank {
+  min-height: 29pt;
+}
+#preview .gw-footnotes {
+  flex-shrink: 0;
+  font-family: "Times New Roman", "FangSong", "仿宋", serif;
+  font-size: 14pt;
+  line-height: 20pt;
+  margin-top: 12pt;
+  border-top: 0.5pt solid #ccc;
+  padding-top: 6pt;
+  color: #444;
+}
+#preview .gw-pagebreak {
+  page-break-after: always;
+  border-bottom: 1pt dashed #ccc;
+  margin: 8pt 0;
+  text-align: center;
+  color: #bbb;
+  font-size: 10pt;
+}
+#preview .gw-pagebreak::after { content: "⤶ 分页符"; }
+
+/* ---------- 状态栏 ---------- */
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  height: 30px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ---------- 弹窗 ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal.hidden { display: none; }
+.modal-box {
+  background: #fff;
+  border-radius: 10px;
+  width: min(720px, 90vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 48px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+}
+.modal-close {
+  border: none; background: none;
+  font-size: 22px; cursor: pointer;
+  color: var(--muted); line-height: 1;
+  padding: 0 4px;
+}
+.modal-close:hover { color: var(--accent); }
+.modal-body { padding: 16px 20px; overflow: auto; font-size: 13px; line-height: 1.75; }
+.modal-body h4 { margin: 12px 0 6px; color: var(--primary); font-size: 14px; }
+.modal-body h4:first-child { margin-top: 0; }
+.modal-body code {
+  background: #f3f5f8;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: "Times New Roman", Consolas, monospace;
+  font-size: 12px;
+}
+.modal-body pre {
+  background: #f6f8fa;
+  border: 1px solid #e4e8ee;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow: auto;
+  margin: 6px 0;
+}
+.modal-body table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+.modal-body td, .modal-body th {
+  border: 1px solid #e4e8ee;
+  padding: 4px 10px;
+  font-size: 12px;
+  text-align: left;
+}
+.modal-body th { background: #f6f8fa; }
+
+/* ---------- 语法速查：表格版式 ---------- */
+.modal-body h4 {
+  margin: 16px 0 8px;
+  padding: 4px 0 4px 10px;
+  border-left: 3px solid var(--primary);
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.modal-body table.syn {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.modal-body table.syn th {
+  background: #eef2f7;
+  border: 1px solid #dfe4ec;
+  padding: 5px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a5568;
+  white-space: nowrap;
+}
+.modal-body table.syn td {
+  border: 1px solid #e8ecf2;
+  padding: 5px 10px;
+  vertical-align: top;
+  background: #fff;
+}
+.modal-body table.syn tr:nth-child(even) td { background: #f8fafc; }
+.modal-body table.syn td.code {
+  font-family: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+  color: #b0343f;
+  background: #fdf6f7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  width: 38%;
+}
+.modal-body table.syn tr:nth-child(even) td.code { background: #fbf2f3; }
+.modal-body table.syn td.two {
+  background: #fff;
+  white-space: nowrap;
+  color: #333;
+  width: 80px;
+}
+.modal-body ul.syn-list {
+  margin: 6px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.modal-body ul.syn-list li {
+  position: relative;
+  padding: 3px 0 3px 18px;
+  color: #3a4553;
+}
+.modal-body ul.syn-list li::before {
+  content: "▪";
+  position: absolute;
+  left: 2px;
+  top: 3px;
+  color: var(--primary);
+  font-size: 11px;
+}
+.modal-body pre.syn-example {
+  background: #fbfcfe;
+  border: 1px solid #dbe2ec;
+  border-left: 3px solid var(--primary);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow: auto;
+  margin: 6px 0 10px;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20,30,50,.92);
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 200;
+  box-shadow: 0 6px 24px rgba(0,0,0,.3);
+  transition: opacity .25s;
+}
+.toast.hidden { opacity: 0; pointer-events: none; }
+.toast.error { background: rgba(180,40,40,.95); }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 900px) {
+  .workspace { flex-direction: column; }
+  .editor-pane, .preview-pane { flex: none; height: 50%; }
+}
+
+/* 分页测量层（不可见） */
+.gw-measure {
+  position: absolute;
+  visibility: hidden;
+  left: -9999px;
+  top: 0;
+  width: 156mm;
+  font-size: 16pt;
+  line-height: 29pt;
+}
+
+/* 预览页码：与 Word 一致 — n —，单页右空一字、双页左空一字 */
+#preview .page-num {
+  position: absolute;
+  bottom: 25mm;
+  left: 28mm;
+  right: 26mm;
+  font-family: "SimSun", "宋体", serif;
+  font-size: 14pt;
+  line-height: 1;
+  color: #000;
+  pointer-events: none;
+}
+#preview .page-num.odd { text-align: right; padding-right: 16pt; }
+#preview .page-num.even { text-align: left; padding-left: 16pt; }
+
+/* ---- 格式校验告警条 ---- */
+#preview .gw-warnings {
+  background: #fff8e1;
+  border: 1px solid #f0c36d;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #6d5a00;
+  text-align: left;
+}
+#preview .gw-warn-head { font-weight: bold; margin-bottom: 4px; }
+#preview .gw-warn-item { line-height: 1.7; }
